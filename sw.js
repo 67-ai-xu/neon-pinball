@@ -1,5 +1,5 @@
 // Service Worker — 霓虹弹球 PWA 离线缓存
-var CACHE_NAME = 'pinball-v2';
+var CACHE_NAME = 'pinball-v3';
 var ASSETS = [
   './pinball-game.html',
   './manifest.json',

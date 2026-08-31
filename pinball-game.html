@@ -3394,7 +3394,122 @@ function showInstallButton() {
 window.addEventListener('appinstalled', function() {
   var btn = document.getElementById('pwaInstallBtn');
   if (btn) btn.remove();
+  var guide = document.getElementById('pwaGuide');
+  if (guide) guide.remove();
 });
+
+// 非 Chrome 浏览器（如小米浏览器）不触发 beforeinstallprompt
+// 3 秒后若无安装按钮出现，则显示手动安装引导
+window.addEventListener('load', function() {
+  // 检测是否在 standalone 模式（已安装）
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                      window.navigator.standalone === true;
+  if (isStandalone) return; // 已安装，不显示
+
+  setTimeout(function() {
+    // 如果 beforeinstallprompt 已触发，安装按钮会显示，无需引导
+    if (deferredPrompt) return;
+    // 如果是 iOS Safari 也显示引导
+    showManualGuide();
+  }, 3000);
+});
+
+// 判断是否已看过引导（存 localStorage，不重复打扰）
+var GUIDE_KEY = 'pinball_guide_seen';
+if (!localStorage.getItem(GUIDE_KEY)) {
+  setTimeout(function() {
+    if (!deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+      showManualGuide();
+    }
+  }, 3000);
+}
+
+function showManualGuide() {
+  if (document.getElementById('pwaGuide')) return;
+  if (localStorage.getItem(GUIDE_KEY)) return;
+
+  // 判断浏览器类型，给出对应引导
+  var ua = navigator.userAgent.toLowerCase();
+  var isMIUI = ua.indexOf('miuibrowser') > -1;
+  var isQQ = ua.indexOf('qqbrowser') > -1 && ua.indexOf('qq/') === -1;
+  var isUC = ua.indexOf('ucbrowser') > -1;
+  var isSafari = ua.indexOf('safari') > -1 && ua.indexOf('chrome') === -1;
+  var isVivo = ua.indexOf('vivobrowser') > -1;
+  var isOppo = ua.indexOf('heytap') > -1 || ua.indexOf('oppobrowser') > -1;
+
+  var steps = '';
+  var icon = '';
+  if (isMIUI) {
+    icon = '📱';
+    steps = '<div style="text-align:left;line-height:2;">' +
+      '<b>小米浏览器安装步骤：</b><br>' +
+      '① 点底部 <b>☰ 菜单</b> 按钮<br>' +
+      '② 找到并点击 <b>「添加到桌面」</b><br>' +
+      '③ 确认名称后点 <b>「立即添加」</b><br>' +
+      '<span style="color:#8a9aba;font-size:12px;">桌面会出现弹球图标，点开即可全屏运行</span>' +
+      '</div>';
+  } else if (isSafari) {
+    icon = '🍎';
+    steps = '<div style="text-align:left;line-height:2;">' +
+      '<b>Safari 安装步骤：</b><br>' +
+      '① 点底部 <b>分享 □↑</b> 按钮<br>' +
+      '② 选择 <b>「添加到主屏幕」</b><br>' +
+      '③ 点 <b>「添加」</b> 完成<br>' +
+      '<span style="color:#8a9aba;font-size:12px;">桌面会出现弹球图标，点开即可全屏运行</span>' +
+      '</div>';
+  } else if (isQQ || isUC || isVivo || isOppo) {
+    icon = '📱';
+    steps = '<div style="text-align:left;line-height:2;">' +
+      '<b>安装到桌面：</b><br>' +
+      '① 点浏览器 <b>菜单 ≡</b><br>' +
+      '② 找到 <b>「添加到桌面」/「创建快捷方式」</b><br>' +
+      '③ 确认后桌面出现弹球图标<br>' +
+      '<span style="color:#8a9aba;font-size:12px;">建议用 Chrome 浏览器可获得一键安装体验</span>' +
+      '</div>';
+  } else {
+    // Chrome 等：如果没触发 beforeinstallprompt，也给引导
+    icon = '📱';
+    steps = '<div style="text-align:left;line-height:2;">' +
+      '<b>安装到手机桌面：</b><br>' +
+      '① 点浏览器 <b>菜单 ⋮</b><br>' +
+      '② 找到 <b>「安装应用」/「添加到主屏幕」</b><br>' +
+      '③ 确认后桌面出现弹球图标<br>' +
+      '<span style="color:#8a9aba;font-size:12px;">安装后可全屏运行，支持离线游玩</span>' +
+      '</div>';
+  }
+
+  var overlay = document.createElement('div');
+  overlay.id = 'pwaGuide';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;' +
+    'background:rgba(0,0,0,.8);z-index:9998;display:flex;' +
+    'align-items:center;justify-content:center;opacity:0;transition:opacity .3s;';
+  overlay.innerHTML =
+    '<div style="background:linear-gradient(180deg,#0d1428,#0a0e1a);' +
+    'border:1px solid rgba(0,245,255,.3);border-radius:16px;' +
+    'padding:28px 24px;max-width:340px;width:88%;text-align:center;' +
+    'box-shadow:0 0 40px rgba(0,245,255,.2);">' +
+    '<div style="font-size:48px;margin-bottom:12px;">' + icon + '</div>' +
+    steps +
+    '<button id="pwaGuideClose" style="margin-top:18px;padding:12px 32px;' +
+    'border-radius:10px;border:none;background:linear-gradient(135deg,#00f5ff,#0099ff);' +
+    'color:#001020;font-size:15px;font-weight:700;cursor:pointer;width:100%;">' +
+    '我知道了</button>' +
+    '<div style="margin-top:8px;font-size:12px;color:#6a7a9a;cursor:pointer;" id="pwaGuideNever">不再提示</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(function() { overlay.style.opacity = '1'; });
+
+  document.getElementById('pwaGuideClose').addEventListener('click', function() {
+    overlay.style.opacity = '0';
+    setTimeout(function() { overlay.remove(); }, 300);
+  });
+  document.getElementById('pwaGuideNever').addEventListener('click', function() {
+    localStorage.setItem(GUIDE_KEY, '1');
+    overlay.style.opacity = '0';
+    setTimeout(function() { overlay.remove(); }, 300);
+  });
+}
 </script>
 </body>
 </html>
