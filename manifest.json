@@ -2,11 +2,14 @@
   "name": "霓虹弹球",
   "short_name": "弹球",
   "description": "霓虹风格经典弹球闯关游戏，含商店系统、强化道具和无限关卡",
-  "start_url": "./pinball-game.html",
-  "display": "fullscreen",
+  "id": "/?source=pwa",
+  "start_url": "./pinball-game.html?source=pwa",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
   "orientation": "portrait",
   "background_color": "#0a0e1a",
   "theme_color": "#0a0e1a",
+  "lang": "zh-CN",
   "categories": ["games", "entertainment"],
   "icons": [
     {

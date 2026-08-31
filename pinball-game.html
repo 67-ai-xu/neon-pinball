@@ -3342,8 +3342,9 @@ requestAnimationFrame(loop);
 })();
 </script>
 
-<!-- PWA Service Worker 注册 -->
+<!-- PWA Service Worker 注册 + 安装提示 -->
 <script>
+// 注册 Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
@@ -3353,6 +3354,47 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+// PWA 安装提示：拦截 beforeinstallprompt，显示自定义安装按钮
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallButton();
+});
+
+function showInstallButton() {
+  if (document.getElementById('pwaInstallBtn')) return;
+  var btn = document.createElement('button');
+  btn.id = 'pwaInstallBtn';
+  btn.innerHTML = '⬇ 安装到手机';
+  btn.style.cssText = 'position:fixed;top:12px;right:12px;z-index:9999;' +
+    'padding:10px 18px;border-radius:25px;border:none;' +
+    'background:linear-gradient(135deg,#00f5ff,#0099ff);color:#001020;' +
+    'font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,245,255,.4);' +
+    'animation:pulse 2s infinite;';
+  // 脉冲动画
+  var style = document.createElement('style');
+  style.textContent = '@keyframes pulse{0%,100%{box-shadow:0 4px 20px rgba(0,245,255,.4)}50%{box-shadow:0 4px 30px rgba(0,245,255,.7)}}';
+  document.head.appendChild(style);
+  btn.addEventListener('click', async function() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    var choice = await deferredPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      console.log('用户已安装 APP');
+    }
+    deferredPrompt = null;
+    btn.remove();
+  });
+  document.body.appendChild(btn);
+}
+
+// 检测是否已安装（已安装则隐藏按钮）
+window.addEventListener('appinstalled', function() {
+  var btn = document.getElementById('pwaInstallBtn');
+  if (btn) btn.remove();
+});
 </script>
 </body>
 </html>
