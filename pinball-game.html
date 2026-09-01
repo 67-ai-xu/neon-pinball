@@ -2004,8 +2004,8 @@ function update(dt){
     }
     if(launchCountdown<=0){
       for(var bi2=0; bi2<balls.length; bi2++){ if(balls[bi2].vx===0&&balls[bi2].vy===0) launchBall(balls[bi2]); }
-      // 购买的三球分裂：开局自动触发（永久三球已自带 3 球，不再叠加）
-      if(purchasedMulti && !permUpgrades.permMultiBall){
+      // 购买的三球分裂：开局自动触发（与永久三球叠加，3球→9球）
+      if(purchasedMulti){
         splitBalls(2, 0.45);
         purchasedMulti = false;
       }
